@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Flying ball</title>
+</head>
+<body>
+    <canvas id="dz1" width="500" height="500" style="background: lightblue"></canvas>
+    <script>
+        let canvas = document.getElementById("dz1");
+        let context = canvas.getContext('2d');
+        context.fillStyle = "red";
+    </script>
+    <script>
+        let radius = 10;
+
+        let posX = 100,
+            posY = 100;
+
+        let speedX = 10 * Math.random(),
+            speedY = 10 * Math.random();
+
+        function GetSpeed() {
+            return 10 * Math.random() + 1;
+        }
+
+        function GetSpeedForDirection(position, minPosition, maxPosition, currentSpeed) {
+            if (position + currentSpeed >= maxPosition) {
+                return -GetSpeed();
+            } else if (position + currentSpeed <= minPosition) {
+                return  GetSpeed();
+            }
+            return currentSpeed;
+        }
+
+        function DrawBall() {
+            context.beginPath();
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.arc(posX, posY, radius, 0, 2 * Math.PI);
+            context.fill();
+            context.stroke();
+        }
+
+        function MoveBall() {
+            speedX = GetSpeedForDirection(posX, radius, canvas.height - radius, speedX);
+            speedY = GetSpeedForDirection(posY, radius, canvas.width - radius, speedY);
+            posX += speedX;
+            posY += speedY;
+        }
+
+        setInterval(() => {
+            DrawBall();
+            MoveBall();
+        }, 10)
+    </script>
+</body>
+</html>

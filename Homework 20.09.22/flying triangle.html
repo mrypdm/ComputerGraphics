@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <canvas id="canvas" width="500" height="500" style="background: #add8e6"/>
+    <script>
+        class Color {
+            static Black = new Color(0, 0, 0, 255);
+            static Red = new Color(255, 0, 0, 255);
+            static Green = new Color(0, 255, 0, 255);
+            static Blue = new Color(0, 0, 255, 255);
+            static White = new Color(255, 255, 255, 255);
+
+            constructor(r, g, b, a) {
+                this.red = r;
+                this.green = g;
+                this.blue = b;
+                this.alpha = a;
+            }
+        }
+
+        class Point {
+            constructor(x, y) {
+                this.X = x;
+                this.Y = y;
+
+                this.add = other => {
+                    this.X += other.X;
+                    this.Y += other.Y;
+                    this.floor();
+                    return this;
+                }
+
+                this.floor = () => {
+                    this.X = Math.floor(this.X);
+                    this.Y = Math.floor(this.Y);
+                }
+            }
+        }
+
+        class Triangle {
+            constructor(a, b, c) {
+                this.A = a;
+                this.B = b;
+                this.C = c;
+            }
+        }
+    </script>
+    <script>
+        function GetLine(point0, point1) {
+            let dx = Math.abs(point1.X - point0.X);
+            let dy = Math.abs(point1.Y - point0.Y);
+            let sx = (point0.X < point1.X) ? 1 : -1;
+            let sy = (point0.Y < point1.Y) ? 1 : -1;
+            let err = dx - dy;
+
+            let x = point0.X;
+            let y = point0.Y;
+
+            let result = []
+
+            while (true) {
+                result.push(new Point(x, y));
+
+                if ((x === point1.X) && (y === point1.Y))
+                    break;
+
+                let e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+
+            return result;
+        }
+
+        function ClearImage(imageData) {
+            imageData.data.fill(0);
+        }
+
+        function SetPixel(imageData, x, y, color) {
+            let width = imageData.width;
+            let height = imageData.height;
+
+            x = Math.min(width, Math.max(x, 0));
+            y = Math.min(height, Math.max(y, 0));
+
+            let pixelStart = 4 * width * y + 4 * x;
+
+            imageData.data[pixelStart] = color.red;
+            imageData.data[pixelStart + 1] = color.green;
+            imageData.data[pixelStart + 2] = color.blue;
+            imageData.data[pixelStart + 3] = color.alpha;
+        }
+
+        function DrawLine(imageData, point0, point1, color) {
+            let dx = Math.abs(point1.X - point0.X);
+            let dy = Math.abs(point1.Y - point0.Y);
+            let sx = (point0.X < point1.X) ? 1 : -1;
+            let sy = (point0.Y < point1.Y) ? 1 : -1;
+            let err = dx - dy;
+
+            let x = point0.X;
+            let y = point0.Y;
+            while (true) {
+                SetPixel(imageData, x, y, color);
+                SetPixel(imageData, x + 1, y, color);
+                SetPixel(imageData, x - 1, y, color);
+                SetPixel(imageData, x, y + 1, color);
+                SetPixel(imageData, x, y - 1, color);
+
+                if ((x === point1.X) && (y === point1.Y))
+                    break;
+
+                let e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        }
+
+        function DrawTriangle(imageData, triangle, color) {
+            DrawLine(imageData, triangle.A, triangle.B, color);
+            DrawLine(imageData, triangle.A, triangle.C, color);
+            DrawLine(imageData, triangle.B, triangle.C, color);
+        }
+
+        function FillTriangle(imageData, triangle, color) {
+            let points = GetLine(triangle.A, triangle.B);
+
+            for (let point of points) {
+                DrawLine(imageData, point, triangle.C, color);
+            }
+
+            DrawTriangle(imageData, triangle, Color.Black);
+        }
+    </script>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext('2d');
+        let data = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let minPos = new Point(0, 0),
+            maxPos = new Point(data.width, data.height);
+
+        let triangle = new Triangle(new Point(100, 10), new Point(10, 120), new Point(12, 310));
+
+        let speed = new Triangle(
+                        new Point(GetSpeed(), GetSpeed()),
+                        new Point(GetSpeed(), GetSpeed()),
+                        new Point(GetSpeed(), GetSpeed()));
+
+        function GetSpeed() {
+            return 10 * Math.random() + 1;
+        }
+
+        function GetSpeedForPoint(point, speed) {
+            if (point.X + speed.X >= maxPos.X) {
+                speed.X = -GetSpeed();
+            } else if (point.X + speed.X <= minPos.X) {
+                speed.X = GetSpeed();
+            }
+
+            if (point.Y + speed.Y >= maxPos.Y) {
+                speed.Y = -GetSpeed();
+            } else if (point.Y + speed.Y <= minPos.Y) {
+                speed.Y = GetSpeed();
+            }
+
+            return speed;
+        }
+
+        function GetSpeedForTriangle(triangle, speed) {
+            speed.A = GetSpeedForPoint(triangle.A, speed.A);
+            speed.B = GetSpeedForPoint(triangle.B, speed.B);
+            speed.C = GetSpeedForPoint(triangle.C, speed.C);
+
+            return speed;
+        }
+
+        function MoveTriangle() {
+            speed = GetSpeedForTriangle(triangle, speed);
+
+            triangle.A.add(speed.A);
+            triangle.B.add(speed.B);
+            triangle.C.add(speed.C);
+        }
+
+        setInterval(() => {
+            ClearImage(data);
+            FillTriangle(data, triangle, Color.Green);
+            context.putImageData(data, 0, 0);
+            MoveTriangle();
+        }, 10);
+    </script>
+</body>
+</html>
