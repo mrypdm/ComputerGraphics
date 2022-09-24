@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Flying Triangle</title>
 </head>
 <body>
     <canvas id="canvas" width="500" height="500" style="background: #add8e6"/>
@@ -69,7 +69,7 @@
                 if ((x === point1.X) && (y === point1.Y))
                     break;
 
-                let e2 = 2 * err;
+                let e2 = err;
                 if (e2 > -dy) {
                     err -= dy;
                     x += sx;
@@ -121,7 +121,7 @@
                 if ((x === point1.X) && (y === point1.Y))
                     break;
 
-                let e2 = 2 * err;
+                let e2 = err;
                 if (e2 > -dy) {
                     err -= dy;
                     x += sx;
@@ -151,7 +151,7 @@
     </script>
     <script>
         let canvas = document.getElementById("canvas");
-        let context = canvas.getContext('2d');
+        let context = canvas.getContext("2d");
         let data = context.getImageData(0, 0, canvas.width, canvas.height);
 
         let minPos = new Point(0, 0),
