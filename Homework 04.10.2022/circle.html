@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Circle</title>
+</head>
+<body>
+    <canvas id="canvas" width="500" height="500" style="background: black; border-radius: 25px"/>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+
+        function FillColorRect(x, y, dx, dy, color) {
+            context.fillStyle = color;
+            context.fillRect(x, y, dx, dy);
+        }
+
+        function dFs(x, y) {
+            return 4 * y + 6;
+        }
+
+        function dFd(x, y) {
+            return 4 * y + 4 * x + 10;
+        }
+
+        function* DrawCircle(x0, y0, R, lineWidth) {
+            let x = -R;
+            let y = 0;
+            let F = 1 - 2 * R;
+
+            while (y <= Math.abs(x)) {
+                FillColorRect(x0 + x, y0 + y, lineWidth, lineWidth, "darkorange");
+                FillColorRect(y0 + y, x0 + x, lineWidth, lineWidth, "darkmagenta");
+
+                FillColorRect(x0 + x, y0 - y, lineWidth, lineWidth, "green");
+                FillColorRect(y0 - y, x0 + x, lineWidth, lineWidth, "gold");
+
+                FillColorRect(x0 - x, y0 + y, lineWidth, lineWidth, "red");
+                FillColorRect(y0 + y, x0 - x, lineWidth, lineWidth, "white");
+
+                FillColorRect(x0 - x, y0 - y, lineWidth, lineWidth, "cyan");
+                FillColorRect(y0 - y, x0 - x, lineWidth, lineWidth, "blue");
+
+                if (F < 0) {
+                    F += dFs(x, y);
+                } else {
+                    F += dFd(x, y);
+                    x++;
+                }
+                y++;
+                yield;
+            }
+        }
+
+        let circleDrawer = DrawCircle(250, 250, 200, 10);
+        setInterval(() => {
+            circleDrawer.next();
+        }, 10);
+    </script>
+</body>
+</html>
