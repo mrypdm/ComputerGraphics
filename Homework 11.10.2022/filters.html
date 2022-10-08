@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Filters</title>
+    <style>
+        .block {
+            display: inline-block;
+            margin: 10pt;
+            border: magenta thick solid;
+        }
+
+        .block.main {
+            border: red thick solid;
+        }
+
+        body {
+            background-color: lightgray;
+        }
+
+        canvas {
+            background-color: white;
+        }
+
+    </style>
+</head>
+<body>
+    <input type="file" onchange="LoadImage(this)"/>
+    <button onclick="ClearImage()">Clear Image</button>
+    <div>
+        <div class="block main">
+            <p>Original</p>
+            <canvas id="canvas" width="500" height="500"/>
+        </div>
+        <div class="block">
+            <p>AvgFilter</p>
+            <canvas id="avg_canvas" width="500" height="500"/>
+        </div>
+        <div class="block">
+            <p>GaussFilter</p>
+            <canvas id="gauss_canvas" width="500" height="500"/>
+        </div>
+        <div class="block">
+            <p>SobelFilter</p>
+            <canvas id="sobel_canvas" width="500" height="500"/>
+        </div>
+        <div class="block">
+            <p>MedianFilter</p>
+            <canvas id="median_canvas" width="500" height="500"></canvas>
+        </div>
+    </div>
+    <script>
+        class Color {
+            static Black = new Color(0, 0, 0, 255);
+            static Red = new Color(255, 0, 0, 255);
+            static Green = new Color(0, 255, 0, 255);
+            static Blue = new Color(0, 0, 255, 255);
+            static White = new Color(255, 255, 255, 255);
+
+            constructor(r, g, b, a) {
+                this.red = r;
+                this.green = g;
+                this.blue = b;
+                this.alpha = a;
+            }
+
+            add(other) {
+                return new Color(this.red + other.red, this.green + other.green, this.blue + other.blue, this.alpha + other.alpha);
+            }
+
+            addAndAssign(other) {
+                this.red += other.red;
+                this.green += other.green;
+                this.blue += other.blue;
+                this.alpha += other.alpha;
+                return this;
+            }
+
+            mult(num) {
+                return new Color(this.red * num, this.green * num, this.blue * num, this.alpha * num);
+            }
+
+            div(num) {
+                return new Color(this.red / num, this.green / num, this.blue / num, this.alpha / num);
+            }
+
+            floor() {
+                return new Color(Math.floor(this.red), Math.floor(this.green), Math.floor(this.blue), Math.floor(this.alpha));
+            }
+
+            norm() {
+                this.red = Math.min(255, Math.max(this.red, 0));
+                this.green = Math.min(255, Math.max(this.green, 0));
+                this.blue = Math.min(255, Math.max(this.blue, 0));
+                this.alpha = Math.min(255, Math.max(this.alpha, 0));
+                return this;
+            }
+
+            pow(num) {
+                return new Color(Math.pow(this.red, num), Math.pow(this.green, num), Math.pow(this.blue, num), Math.pow(this.alpha, num));
+            }
+
+            sqrt() {
+                return new Color(Math.sqrt(this.red), Math.sqrt(this.green), Math.sqrt(this.blue), Math.sqrt(this.alpha));
+            }
+        }
+
+        function OrderBy(fieldSelector) {
+            return (a, b) => {
+                let left = fieldSelector(a);
+                let right = fieldSelector(b);
+                if (left > right)
+                    return 1
+                else if (left < right)
+                    return -1;
+                return 0;
+            }
+        }
+
+        Object.defineProperty(Array.prototype, "OrderBy", {
+            value: function (fieldSelector) {
+                this.sort(OrderBy(fieldSelector));
+                return this;
+            }
+        });
+    </script>
+    <script>
+        function SetPixel(imageData, x, y, color) {
+            let width = imageData.width;
+            let height = imageData.height;
+
+            x = Math.min(width, Math.max(x, 0));
+            y = Math.min(height, Math.max(y, 0));
+
+            let pixelStart = 4 * width * y + 4 * x;
+
+            imageData.data[pixelStart] = color.red;
+            imageData.data[pixelStart + 1] = color.green;
+            imageData.data[pixelStart + 2] = color.blue;
+            imageData.data[pixelStart + 3] = color.alpha;
+        }
+
+        function GetPixel(imageData, x, y) {
+            let width = imageData.width;
+            let height = imageData.height;
+
+            x = Math.min(width, Math.max(x, 0));
+            y = Math.min(height, Math.max(y, 0));
+
+            let pixelStart = 4 * width * y + 4 * x;
+
+            return new Color(imageData.data[pixelStart], imageData.data[pixelStart + 1], imageData.data[pixelStart + 2], imageData.data[pixelStart + 3]);
+        }
+
+
+        function PixelConvolution(imageData, x, y, weights, k) {
+            let avgColor = new Color(0, 0, 0, 0);
+
+            for (let i = 0; i < 3; ++i) {
+                for (let j = 0; j < 3; ++j) {
+                    avgColor.addAndAssign(GetPixel(imageData, x - 1 + i, y - 1 + j).mult(weights[i][j]));
+                }
+            }
+
+            return avgColor.div(k).floor().norm();
+        }
+
+        function FilterImage(imageData, weights) {
+            let buffer = context.createImageData(imageData.width, imageData.height);
+
+            let sum = 0;
+            for (let arr of weights) {
+                for (let n of arr) {
+                    sum += n;
+                }
+            }
+
+            for (let i = 0; i < imageData.width; ++i) {
+                for (let j = 0; j < imageData.height; ++j) {
+                    let color = PixelConvolution(imageData, i, j, weights, sum);
+                    SetPixel(buffer, i, j, color);
+                }
+            }
+
+            return buffer;
+        }
+
+
+        function AvgFilter(imageData) {
+            let weights = [
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1]
+            ];
+
+            return FilterImage(imageData, weights);
+        }
+
+        function GaussFilter(imageData) {
+            let weights = [
+                [1, 2, 1],
+                [2, 4, 2],
+                [1, 2, 2]
+            ];
+
+            return FilterImage(imageData, weights);
+        }
+
+        function SobelFilter(imageData) {
+            let buffer = context.createImageData(canvas.width, canvas.height);
+
+            let weight_x = [
+                [-1, 0, 1],
+                [-2, 0, 2],
+                [-1, 0, 1]
+            ];
+
+            let weight_y = [
+                [-1, -2, -1],
+                [0, 0, 0],
+                [1, 2, 1]
+            ];
+
+            for (let i = 0; i < imageData.width; ++i) {
+                for (let j = 0; j < imageData.height; ++j) {
+                    let pX = PixelConvolution(imageData, i, j, weight_x, 1).pow(2);
+                    let pY = PixelConvolution(imageData, i, j, weight_y, 1).pow(2);
+                    let pixel = pX.add(pY).sqrt().floor().norm();
+                    pixel.alpha = 255;
+                    SetPixel(buffer, i, j, pixel);
+                }
+            }
+
+            return buffer;
+        }
+
+        function MedianFilter(imageData) {
+            let GetMedian = (x, y) => {
+                let array = [];
+
+                for (let i = 0; i < 3; ++i) {
+                    for (let j = 0; j < 3; ++j) {
+                        array.push(GetPixel(imageData, x - i - 1, y + j - 1));
+                    }
+                }
+
+                let median = new Color(0, 0, 0, 0);
+
+                array.OrderBy(color => color.red);
+                median.red = array[4].red;
+
+                array.OrderBy(color => color.green);
+                median.green = array[4].green;
+
+                array.OrderBy(color => color.blue);
+                median.blue = array[4].blue;
+
+                array.OrderBy(color => color.alpha);
+                median.alpha = array[4].alpha;
+
+                return median;
+            }
+
+            let buffer = context.createImageData(canvas.width, canvas.height);
+
+            for (let i = 0; i < imageData.width; ++i) {
+                for (let j = 0; j < imageData.height; ++j) {
+                    SetPixel(buffer, i, j, GetMedian(i, j));
+                }
+            }
+
+            return buffer;
+        }
+    </script>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+
+        let image = new Image();
+
+        image.onload = () => {
+            context.drawImage(image, 0, 0);
+
+            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+            SetImageToContext("avg_canvas", AvgFilter(imageData));
+            SetImageToContext("gauss_canvas", GaussFilter(imageData));
+            SetImageToContext("sobel_canvas", SobelFilter(imageData));
+            SetImageToContext("median_canvas", MedianFilter(imageData));
+        }
+
+        function SetImageToContext(name, image) {
+            document.getElementById(name).getContext("2d").putImageData(image, 0, 0);
+        }
+
+        function ClearContext(name) {
+            document.getElementById(name).getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function LoadImage(input) {
+            ClearImage();
+            image.src = window.URL.createObjectURL(input.files[0]);
+            input.value = '';
+        }
+
+        function ClearImage() {
+            ClearContext("canvas");
+            ClearContext("avg_canvas");
+            ClearContext("gauss_canvas");
+            ClearContext("sobel_canvas");
+            ClearContext("median_canvas");
+        }
+    </script>
+</body>
+</html>
