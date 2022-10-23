@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cohen–Sutherland</title>
+</head>
+<body>
+    <canvas id="canvas" width="500" height="500" style="background: lightblue"></canvas>
+    <script>
+        class Point {
+            constructor(x, y) {
+                this.X = x;
+                this.Y = y;
+            }
+
+            floor() {
+                this.X = Math.floor(this.X);
+                this.Y = Math.floor(this.Y);
+                return this;
+            }
+        }
+
+        function DrawLine(point0, point1) {
+            let dx = Math.abs(point1.X - point0.X);
+            let dy = Math.abs(point1.Y - point0.Y);
+            let sx = (point0.X < point1.X) ? 1 : -1;
+            let sy = (point0.Y < point1.Y) ? 1 : -1;
+            let err = dx - dy;
+
+            let x = point0.X;
+            let y = point0.Y;
+            while (true) {
+                context.fillRect(x, y, 1, 1);
+
+                if ((x === point1.X) && (y === point1.Y))
+                    break;
+
+                let e2 = err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        }
+    </script>
+    <script>
+        let pointCounter = 0;
+        let point1 = new Point(0, 0);
+        let point2 = new Point(0, 0);
+
+        function GetPointCode(point) {
+            let result = 0
+
+            if (point.Y < MinBorder.Y) {
+                result |= 8;
+            } else if (point.Y > MaxBorder.Y) {
+                result |= 4;
+            }
+
+            if (point.X < MinBorder.X) {
+                result |= 2;
+            } else if (point.X > MaxBorder.X) {
+                result |= 1;
+            }
+
+            return result;
+        }
+
+        function TryDrawLine(p1, p2) {
+            let code1 = GetPointCode(p1);
+            let code2 = GetPointCode(p2);
+
+            if (code1 === code2) {
+                if (code1 === 0) {
+                    DrawLine(p1, p2);
+                }
+                return;
+            }
+
+            let subCode = code1 & code2;
+
+            if (subCode !== 0) {
+                return;
+            }
+
+            let dx = p2.X - p1.X;
+            let dy = p2.Y - p1.Y;
+
+            if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+                return;
+            }
+
+            let midPoint = new Point(p1.X + dx / 2, p1.Y + dy / 2).floor();
+
+            TryDrawLine(p1, midPoint);
+            TryDrawLine(midPoint, p2);
+        }
+
+        function LineManager(x, y) {
+            context.fillRect(x, y, 1, 1);
+
+            pointCounter++;
+
+            if (pointCounter % 2 === 1) {
+                point1.X = x;
+                point1.Y = y;
+            } else {
+                point2.X = x;
+                point2.Y = y;
+
+                TryDrawLine(point1, point2);
+
+                context.clearRect(point1.X, point1.Y, 1, 1);
+                context.clearRect(point2.X, point2.Y, 1, 1);
+            }
+        }
+    </script>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+
+        let MinBorder = new Point(100, 100);
+        let MaxBorder = new Point(canvas.width - 100, canvas.height - 100);
+
+        context.fillStyle = "darkred";
+        context.fillRect(MinBorder.X, MinBorder.Y, MaxBorder.X - MinBorder.X, MaxBorder.Y - MinBorder.Y);
+        context.fillStyle = "black";
+
+        canvas.onclick = event => {
+            let rect = canvas.getBoundingClientRect();
+            LineManager(event.clientX - rect.left, event.clientY - rect.top);
+        }
+    </script>
+</body>
+</html>
