@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cyrus Beck</title>
+</head>
+
+<body>
+    <h1>Располагать точки по часовой</h1>
+    <canvas id="canvas" width="500" height="500" style="background: black;"></canvas>
+    <button onclick="StateChange()">State changer</button>
+    <script>
+        class Point {
+            static Empty = new Point(-1, -1);
+
+            constructor(x, y) {
+                this.X = x;
+                this.Y = y;
+            }
+
+            floor() {
+                this.X = Math.floor(this.X);
+                this.Y = Math.floor(this.Y);
+                return this;
+            }
+
+            equals(other) {
+                return this.X == other.X && this.Y == other.Y;
+            }
+
+            minus(other) {
+                return new Point(this.X - other.X, this.Y - other.Y);
+            }
+
+            scalar(other) {
+                return this.X * other.X + this.Y * other.Y;
+            }
+        }
+
+        function DrawLine(point0, point1, drawer) {
+            if (point0.equals(point1)) return;
+
+            let dx = Math.abs(point1.X - point0.X);
+            let dy = Math.abs(point1.Y - point0.Y);
+            let sx = (point0.X < point1.X) ? 1 : -1;
+            let sy = (point0.Y < point1.Y) ? 1 : -1;
+            let err = dx - dy;
+
+            let x = point0.X;
+            let y = point0.Y;
+            while (true) {
+                drawer(x, y);
+
+                if ((x === point1.X) && (y === point1.Y))
+                    break;
+
+                let e2 = err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        }
+
+        function RegularDrawer(x, y) {
+            context.fillRect(x, y, 1, 1);
+        }
+
+        function BoldDrawer(x, y) {
+            context.fillRect(x - 1, y - 1, 3, 3);
+        }
+
+        let points = [];
+
+        function CyrusBeckAlgorithm(A, B) {
+            let D = B.minus(A); // Направление
+
+            let n = points.length;
+
+            let N = []; // Нормали
+
+            for (let i = 0; i < n; ++i) {
+                N.push(new Point(points[i].Y - points[(i + 1) % n].Y, points[(i + 1) % n].X - points[i].X));
+            }
+
+            let tStart = 0, tEnd = 1;
+
+            for (let i = 0; i < n; i++) {
+                if (N[i].scalar(D) > 0) {
+                    tStart = Math.max(tStart, N[i].scalar(points[i].minus(A)) / N[i].scalar(D));
+                } else {
+                    tEnd = Math.min(tEnd, N[i].scalar(points[i].minus(A)) / N[i].scalar(D));
+                }
+            }
+
+            if (tStart > tEnd) {
+                return [Point.Empty, Point.Empty];
+            }
+
+            return [new Point(A.X + D.X * tStart, A.Y + D.Y * tStart).floor(), new Point(A.X + D.X * tEnd, A.Y + D.Y * tEnd).floor()];
+        }
+
+        let point0 = new Point(0, 0);
+        let point1 = new Point(0, 0);
+        let pointerCount = 0;
+
+        function LineManager(x, y) {
+            BoldDrawer(x, y);
+
+            if (state == 0) {
+                points.push(new Point(x, y));
+            } else {
+                if (pointerCount++ % 2 == 0) {
+                    point0.X = x;
+                    point0.Y = y;
+                } else {
+                    point1.X = x;
+                    point1.Y = y;
+
+                    DrawLine(point0, point1, RegularDrawer);
+                    res = CyrusBeckAlgorithm(point0, point1);
+
+                    context.fillStyle = "green";
+                    DrawLine(res[0], res[1], BoldDrawer);
+                    context.fillStyle = "white";
+                }
+            }
+        }
+
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+        context.fillStyle = "white";
+
+        canvas.onclick = event => {
+            let rect = canvas.getBoundingClientRect();
+            LineManager(event.clientX - rect.left, event.clientY - rect.top);
+        }
+
+        var state = 0;
+        function StateChange() {
+            if (state == 1) {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                points = [];
+                verticles = [];
+                state = 0;
+            } else {
+                state = 1;
+                for (let i = 0; i < points.length - 1; ++i) {
+                    DrawLine(points[i], points[i + 1], RegularDrawer);
+                }
+                DrawLine(points[0], points[points.length - 1], RegularDrawer);
+            }
+        }
+    </script>
+</body>
+
+</html>
