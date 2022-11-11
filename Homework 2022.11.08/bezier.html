@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>Bezier</title>
@@ -28,7 +28,7 @@
             }
 
             equals(other) {
-                return this.X == other.X && this.Y == other.Y;
+                return this.X === other.X && this.Y === other.Y;
             }
         }
     </script>
@@ -75,7 +75,6 @@
             return Math.abs(k * N)
         }
 
-
         function DrawCurve(startPoint, midPoint, endPoint) {
             if (CurveDistance(startPoint, midPoint, endPoint) < 1) {
                 DrawLine(startPoint, endPoint);
@@ -106,7 +105,7 @@
         canvas.onclick = event => {
             if (!state) {
                 let rect = canvas.getBoundingClientRect();
-                newPoint = new Point(event.clientX - rect.left, event.clientY - rect.top);
+                let newPoint = new Point(event.clientX - rect.left, event.clientY - rect.top);
                 context.fillRect(newPoint.X - 2, newPoint.Y - 2, 3, 3);
                 points.push(newPoint);
             }

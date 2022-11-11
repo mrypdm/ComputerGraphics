@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <title>Cyrus Beck</title>
@@ -24,7 +24,7 @@
             }
 
             equals(other) {
-                return this.X == other.X && this.Y == other.Y;
+                return this.X === other.X && this.Y === other.Y;
             }
 
             minus(other) {
@@ -131,10 +131,10 @@
         function LineManager(x, y) {
             BoldDrawer(x, y);
 
-            if (state == 0) {
+            if (state === 0) {
                 points.push(new Point(x, y));
             } else {
-                if (pointerCount++ % 2 == 0) {
+                if (pointerCount++ % 2 === 0) {
                     point0.X = x;
                     point0.Y = y;
                 } else {
@@ -142,9 +142,9 @@
                     point1.Y = y;
 
                     DrawLine(point0, point1, RegularDrawer);
-                    res = CyrusBeckAlgorithm(point0, point1);
+                    let res = CyrusBeckAlgorithm(point0, point1);
 
-                    if (res[0] == Point.Empty || res[1] == Point.Empty) {
+                    if (res[0] === Point.Empty || res[1] === Point.Empty) {
                         return;
                     }
 
@@ -165,21 +165,20 @@
             LineManager(event.clientX - rect.left, event.clientY - rect.top);
         }
 
-        var state = 0;
+        let state = 0;
         function StateChange() {
-            if (state == 1) {
+            if (state === 1) {
                 context.clearRect(0, 0, canvas.width, canvas.height);
                 points = [];
-                verticles = [];
                 state = 0;
             } else {
                 state = 1;
 
                 points.OrderBy(p => p.X);
-                midX = points[Math.floor(points.length / 2)].X;
+                let midX = points[Math.floor(points.length / 2)].X;
 
                 points.OrderBy(p => p.Y);
-                midY = points[Math.floor(points.length / 2)].Y;
+                let midY = points[Math.floor(points.length / 2)].Y;
 
                 points.OrderBy(p => Math.atan2(p.Y - midY, p.X - midX));
 
@@ -187,7 +186,7 @@
                     DrawLine(points[i], points[(i + 1) % points.length], RegularDrawer);
                 }
             }
-        };
+        }
     </script>
 </body>
 
